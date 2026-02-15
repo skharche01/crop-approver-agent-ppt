@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/crop-approver-agent-ppt/static/css/main.0b3e5082.css",
+    "main.js": "/crop-approver-agent-ppt/static/js/main.b3b58ec9.js",
+    "static/js/453.fb627548.chunk.js": "/crop-approver-agent-ppt/static/js/453.fb627548.chunk.js",
+    "index.html": "/crop-approver-agent-ppt/index.html",
+    "main.0b3e5082.css.map": "/crop-approver-agent-ppt/static/css/main.0b3e5082.css.map",
+    "main.b3b58ec9.js.map": "/crop-approver-agent-ppt/static/js/main.b3b58ec9.js.map",
+    "453.fb627548.chunk.js.map": "/crop-approver-agent-ppt/static/js/453.fb627548.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.0b3e5082.css",
+    "static/js/main.b3b58ec9.js"
+  ]
+}
