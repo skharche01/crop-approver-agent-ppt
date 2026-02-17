@@ -1,0 +1,1091 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Crop Approver Agent — Arena Club</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap");
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --ac-gold: #c9a84c;
+        --ac-gold-light: #e8cc6e;
+        --ac-darker: #0b1020;
+        --text: #eef0f6;
+        --text-dim: #7a8194;
+        --card-bg: #0d1528;
+      }
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--ac-darker);
+        color: var(--text);
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+      }
+
+      .slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transform: scale(0.95);
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+      }
+      .slide.active {
+        opacity: 1;
+        transform: scale(1);
+        pointer-events: all;
+      }
+      .slide::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          radial-gradient(
+            ellipse at 40% 30%,
+            rgba(60, 120, 255, 0.08) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            ellipse at 70% 70%,
+            rgba(201, 168, 76, 0.06) 0%,
+            transparent 50%
+          );
+      }
+
+      .slab {
+        background: linear-gradient(180deg, #c8c8c8 0%, #b0b0b0 100%);
+        border-radius: 16px;
+        padding: 10px;
+        position: relative;
+        box-shadow:
+          0 20px 60px rgba(0, 0, 0, 0.5),
+          0 0 0 1px rgba(255, 255, 255, 0.1),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+        display: flex;
+        flex-direction: column;
+      }
+      .slab::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 16px;
+        background: linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.15) 0%,
+          transparent 40%,
+          transparent 60%,
+          rgba(255, 255, 255, 0.05) 100%
+        );
+        pointer-events: none;
+        z-index: 1;
+      }
+
+      .slab-label {
+        background: #fff;
+        border-radius: 8px 8px 0 0;
+        padding: 10px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+        border: 3px solid #d42020;
+      }
+      .slab-label-left {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .slab-label-title {
+        font-size: 14px;
+        font-weight: 900;
+        color: #1a1a1a;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+      .slab-label-sub {
+        font-size: 9px;
+        font-weight: 600;
+        color: #666;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+      .slab-label-right {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 1px;
+      }
+      .slab-label-grade {
+        font-size: 10px;
+        font-weight: 700;
+        color: #888;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+      }
+      .slab-label-num {
+        font-size: 22px;
+        font-weight: 900;
+        color: #1a1a1a;
+      }
+      .slab-label-logo {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(
+          135deg,
+          var(--ac-gold),
+          var(--ac-gold-light)
+        );
+        padding: 2px 10px;
+        border-radius: 3px;
+        font-size: 8px;
+        font-weight: 900;
+        color: #000;
+        letter-spacing: 1px;
+      }
+
+      .slab-card-area {
+        flex: 1;
+        margin: 6px;
+        border-radius: 6px;
+        overflow: hidden;
+        position: relative;
+        z-index: 2;
+        background: var(--card-bg);
+        display: flex;
+        flex-direction: column;
+      }
+      .card-content {
+        flex: 1;
+        padding: 24px 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+        overflow-y: auto;
+      }
+
+      .slab-bottom {
+        background: #1a1a1a;
+        padding: 6px 16px;
+        border-radius: 0 0 8px 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        z-index: 2;
+      }
+      .slab-bottom-left {
+        font-size: 8px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.4);
+        letter-spacing: 1px;
+        font-family: monospace;
+      }
+      .slab-bottom-right {
+        font-size: 8px;
+        font-weight: 700;
+        color: var(--ac-gold);
+        letter-spacing: 1px;
+      }
+
+      .gold {
+        background: linear-gradient(
+          135deg,
+          var(--ac-gold),
+          var(--ac-gold-light)
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .card-content h2 {
+        font-size: 28px;
+        font-weight: 800;
+        margin-bottom: 16px;
+        line-height: 1.15;
+        color: #fff;
+      }
+      .quote-block {
+        padding: 16px 20px;
+        background: rgba(201, 168, 76, 0.06);
+        border-left: 3px solid var(--ac-gold);
+        border-radius: 0 8px 8px 0;
+        font-size: 13px;
+        font-style: italic;
+        line-height: 1.6;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 20px;
+      }
+      .pain-points {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        width: 100%;
+      }
+      .pain-card {
+        padding: 14px 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 8px;
+        text-align: center;
+      }
+      .pain-card .icon {
+        font-size: 22px;
+        margin-bottom: 6px;
+      }
+      .pain-card h4 {
+        font-size: 11px;
+        font-weight: 600;
+        margin-bottom: 3px;
+        color: #fff;
+      }
+      .pain-card p {
+        font-size: 9px;
+        color: var(--text-dim);
+      }
+      .phases-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        width: 100%;
+      }
+      .phase-box {
+        padding: 16px 14px;
+        border-radius: 10px;
+        background: rgba(201, 168, 76, 0.04);
+        border: 1px solid rgba(201, 168, 76, 0.12);
+        position: relative;
+        overflow: hidden;
+      }
+      .phase-box::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #1a3a6e, var(--ac-gold));
+        opacity: 0.6;
+      }
+      .phase-num {
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        color: var(--ac-gold);
+        margin-bottom: 6px;
+      }
+      .phase-box h3 {
+        font-size: 14px;
+        font-weight: 700;
+        margin-bottom: 4px;
+        color: #fff;
+      }
+      .phase-box p {
+        font-size: 10px;
+        color: var(--text-dim);
+        line-height: 1.5;
+        margin-bottom: 10px;
+      }
+      .artifact-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px 10px;
+        background: rgba(201, 168, 76, 0.1);
+        border: 1px solid rgba(201, 168, 76, 0.2);
+        border-radius: 6px;
+        color: var(--ac-gold);
+        text-decoration: none;
+        font-size: 10px;
+        font-weight: 600;
+        transition: all 0.2s;
+      }
+      .artifact-link:hover {
+        background: rgba(201, 168, 76, 0.2);
+      }
+      .video-container {
+        width: 100%;
+        aspect-ratio: 16/9;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 10px;
+        border: 1px solid rgba(201, 168, 76, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+      .video-container iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        border-radius: 10px;
+      }
+      .video-placeholder {
+        text-align: center;
+      }
+      .play-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(201, 168, 76, 0.15);
+        border: 2px solid var(--ac-gold);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        margin: 0 auto 10px;
+      }
+      .video-placeholder p {
+        color: var(--text-dim);
+        font-size: 11px;
+      }
+      .video-placeholder .vid-label {
+        color: var(--ac-gold);
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 2px;
+      }
+      .team-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 12px;
+        background: rgba(201, 168, 76, 0.06);
+        border: 1px solid rgba(201, 168, 76, 0.15);
+        border-radius: 50px;
+        font-size: 11px;
+        color: #fff;
+      }
+      .team-chip .av {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #1a3a6e, var(--ac-gold));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        font-weight: 700;
+        color: #fff;
+      }
+
+      .bg-card {
+        position: fixed;
+        pointer-events: none;
+        z-index: 0;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+      }
+      @keyframes floatA {
+        0%,
+        100% {
+          transform: translateY(0) rotate(8deg);
+        }
+        50% {
+          transform: translateY(-15px) rotate(12deg);
+        }
+      }
+      @keyframes floatB {
+        0%,
+        100% {
+          transform: translateY(0) rotate(-6deg);
+        }
+        50% {
+          transform: translateY(-12px) rotate(-10deg);
+        }
+      }
+
+      .nav {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        z-index: 100;
+        background: rgba(11, 15, 26, 0.92);
+        backdrop-filter: blur(20px);
+        padding: 8px 24px;
+        border-radius: 50px;
+        border: 1px solid rgba(201, 168, 76, 0.15);
+      }
+      .nav button {
+        background: none;
+        border: none;
+        color: var(--text);
+        font-size: 20px;
+        cursor: pointer;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+      .nav button:hover {
+        background: rgba(201, 168, 76, 0.15);
+      }
+      .nav button:disabled {
+        opacity: 0.2;
+        cursor: default;
+      }
+      .nav button:disabled:hover {
+        background: none;
+      }
+      .dots {
+        display: flex;
+        gap: 6px;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.12);
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .dot.active {
+        background: var(--ac-gold);
+        box-shadow: 0 0 8px rgba(201, 168, 76, 0.3);
+        width: 24px;
+        border-radius: 4px;
+      }
+      .slide-counter {
+        color: var(--text-dim);
+        font-size: 11px;
+        font-weight: 500;
+        min-width: 40px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <svg
+      class="bg-card"
+      style="
+        top: 5%;
+        right: 4%;
+        width: 80px;
+        animation: floatA 7s ease-in-out infinite;
+        opacity: 0.2;
+      "
+      viewBox="0 0 120 168"
+    >
+      <rect
+        x="2"
+        y="2"
+        width="116"
+        height="164"
+        rx="8"
+        fill="#0d1528"
+        stroke="#c9a84c"
+        stroke-width="1"
+      />
+      <text x="60" y="52" text-anchor="middle" font-size="20">⚾</text>
+      <rect
+        x="74"
+        y="130"
+        width="34"
+        height="24"
+        rx="3"
+        fill="rgba(201,168,76,0.1)"
+        stroke="#c9a84c"
+        stroke-width="0.5"
+      />
+      <text
+        x="91"
+        y="146"
+        text-anchor="middle"
+        fill="#c9a84c"
+        font-size="10"
+        font-weight="900"
+        font-family="Inter"
+      >
+        10
+      </text>
+    </svg>
+    <svg
+      class="bg-card"
+      style="
+        bottom: 10%;
+        left: 3%;
+        width: 60px;
+        animation: floatB 9s ease-in-out infinite;
+        opacity: 0.15;
+      "
+      viewBox="0 0 120 168"
+    >
+      <rect
+        x="2"
+        y="2"
+        width="116"
+        height="164"
+        rx="8"
+        fill="#1a1040"
+        stroke="rgba(150,80,255,0.3)"
+        stroke-width="1"
+      />
+      <circle
+        cx="60"
+        cy="50"
+        r="18"
+        fill="none"
+        stroke="rgba(255,60,60,0.3)"
+        stroke-width="1.5"
+      />
+      <line
+        x1="42"
+        y1="50"
+        x2="78"
+        y2="50"
+        stroke="rgba(255,60,60,0.2)"
+        stroke-width="1"
+      />
+      <text
+        x="60"
+        y="10"
+        text-anchor="middle"
+        fill="rgba(255,220,50,0.4)"
+        font-size="6"
+        font-weight="800"
+      >
+        POKÉMON
+      </text>
+    </svg>
+    <svg
+      class="bg-card"
+      style="
+        top: 50%;
+        right: 2%;
+        width: 50px;
+        animation: floatA 10s ease-in-out infinite 2s;
+        opacity: 0.12;
+      "
+      viewBox="0 0 120 168"
+    >
+      <rect
+        x="2"
+        y="2"
+        width="116"
+        height="164"
+        rx="8"
+        fill="#0d2a0d"
+        stroke="rgba(0,200,80,0.25)"
+        stroke-width="1"
+      />
+      <text x="60" y="52" text-anchor="middle" font-size="18">🏈</text>
+    </svg>
+    <svg
+      class="bg-card"
+      style="
+        top: 15%;
+        left: 5%;
+        width: 55px;
+        animation: floatB 8s ease-in-out infinite 1s;
+        opacity: 0.14;
+      "
+      viewBox="0 0 120 168"
+    >
+      <rect
+        x="2"
+        y="2"
+        width="116"
+        height="164"
+        rx="8"
+        fill="#1a0d0d"
+        stroke="rgba(255,140,0,0.25)"
+        stroke-width="1"
+      />
+      <text x="60" y="52" text-anchor="middle" font-size="18">🏀</text>
+    </svg>
+
+    <div
+      id="pres"
+      style="width: 100vw; height: 100vh; position: relative; z-index: 1"
+    >
+      <!-- 1: TITLE -->
+      <div class="slide active" data-index="0">
+        <div class="slab" style="width: 80vw; height: 88vh; max-width: 1100px">
+          <div class="slab-label">
+            <div class="slab-label-left">
+              <div class="slab-label-title">Arena Club Hackathon</div>
+              <div class="slab-label-sub">Agentic AI · Final Submission</div>
+            </div>
+            <div class="slab-label-logo">AC</div>
+            <div class="slab-label-right">
+              <div class="slab-label-grade">AGENT</div>
+              <div class="slab-label-num">007</div>
+            </div>
+          </div>
+          <div class="slab-card-area" style="background: #fff">
+            <div
+              class="card-content"
+              style="text-align: center; align-items: center"
+            >
+              <!-- Arena Club Logo SVG -->
+              <div style="margin-bottom: 24px">
+                <svg width="120" height="130" viewBox="0 0 120 130">
+                  <rect
+                    x="15"
+                    y="30"
+                    width="80"
+                    height="80"
+                    rx="2"
+                    fill="none"
+                    stroke="#1a1a1a"
+                    stroke-width="7"
+                  />
+                  <rect
+                    x="70"
+                    y="18"
+                    width="22"
+                    height="22"
+                    rx="2"
+                    fill="none"
+                    stroke="#1a1a1a"
+                    stroke-width="5"
+                  />
+                  <rect
+                    x="82"
+                    y="18"
+                    width="10"
+                    height="4"
+                    rx="1"
+                    fill="#3a7d44"
+                  />
+                  <text
+                    x="55"
+                    y="62"
+                    text-anchor="middle"
+                    fill="#1a1a1a"
+                    font-size="18"
+                    font-weight="900"
+                    font-family="Inter"
+                    letter-spacing="2"
+                  >
+                    ARENA
+                  </text>
+                  <text
+                    x="55"
+                    y="80"
+                    text-anchor="middle"
+                    fill="#1a1a1a"
+                    font-size="11"
+                    font-weight="700"
+                    font-family="Inter"
+                    letter-spacing="4"
+                  >
+                    CLUB
+                  </text>
+                </svg>
+              </div>
+              <h1
+                style="
+                  font-size: 72px;
+                  font-weight: 900;
+                  line-height: 1;
+                  margin-bottom: 20px;
+                  color: #1a1a1a;
+                  -webkit-text-fill-color: #1a1a1a;
+                "
+              >
+                Game Changers
+              </h1>
+              <p
+                style="
+                  font-size: 22px;
+                  color: #888;
+                  font-weight: 400;
+                  margin-bottom: 6px;
+                "
+              >
+                AI-Gent 007 - AI Crop Approval Agent
+              </p>
+              <p style="font-size: 20px; color: #aaa; font-weight: 400">
+                By: Sumit, Alan, Austin
+              </p>
+            </div>
+          </div>
+          <div class="slab-bottom">
+            <div class="slab-bottom-left">ARENA-CLUB-2025</div>
+            <div class="slab-bottom-right">GAME CHANGERS</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2: PROBLEM STATEMENT -->
+      <div class="slide" data-index="1">
+        <div class="slab" style="width: 80vw; height: 88vh; max-width: 1100px">
+          <div class="slab-label">
+            <div class="slab-label-left">
+              <div class="slab-label-title">Problem Statement</div>
+              <div class="slab-label-sub">The Challenge We're Solving</div>
+            </div>
+            <div class="slab-label-logo">AC</div>
+            <div class="slab-label-right">
+              <div class="slab-label-grade">SLIDE</div>
+              <div class="slab-label-num">02</div>
+            </div>
+          </div>
+          <div class="slab-card-area">
+            <div class="card-content">
+              <div class="quote-block">
+                "We're spending way too much time on manual tasks in our current
+                system — especially crop verification, which is eating up hours
+                that our team could be putting toward work that actually moves
+                the needle."
+              </div>
+              <div class="pain-points">
+                <div class="pain-card">
+                  <div class="icon">⏱️</div>
+                  <h4>Time Drain</h4>
+                  <p>
+                    Manual crop verification consumes hours of team bandwidth
+                  </p>
+                </div>
+                <div class="pain-card">
+                  <div class="icon">🔁</div>
+                  <h4>Repetitive Work</h4>
+                  <p>Ops team stuck in card approval loops</p>
+                </div>
+                <div class="pain-card">
+                  <div class="icon">📉</div>
+                  <h4>Lost Productivity</h4>
+                  <p>Grading & marketplace work deprioritized</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="slab-bottom">
+            <div class="slab-bottom-left">ARENA-CLUB-2025</div>
+            <div class="slab-bottom-right">THE PROBLEM</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3: CURRENT VS AI -->
+      <div class="slide" data-index="2">
+        <div class="slab" style="width: 80vw; height: 88vh; max-width: 1100px">
+          <div class="slab-label">
+            <div class="slab-label-left">
+              <div class="slab-label-title">Current vs AI Agent</div>
+              <div class="slab-label-sub">Side-by-Side Comparison</div>
+            </div>
+            <div class="slab-label-logo">AC</div>
+            <div class="slab-label-right">
+              <div class="slab-label-grade">COMPARE</div>
+              <div class="slab-label-num" style="font-size: 14px">OLD→NEW</div>
+            </div>
+          </div>
+          <div class="slab-card-area">
+            <div class="card-content">
+              <div style="display: flex; gap: 16px; width: 100%">
+                <div style="flex: 1">
+                  <div
+                    style="
+                      text-align: center;
+                      margin-bottom: 8px;
+                      font-size: 10px;
+                      font-weight: 700;
+                      color: var(--text-dim);
+                      letter-spacing: 2px;
+                      text-transform: uppercase;
+                    "
+                  >
+                    ⏱️ Before · Manual
+                  </div>
+                  <div class="video-container">
+                    <iframe
+                      src="https://drive.google.com/file/d/1j86soE9nWoiE5XWhmax7vZ6aaN0WRw60/preview"
+                      title="Before - Manual Process"
+                      frameborder="0"
+                      allow="autoplay"
+                      allowfullscreen
+                      style="
+                        width: 100%;
+                        height: 100%;
+                        border: none;
+                        border-radius: 10px;
+                      "
+                    ></iframe>
+                  </div>
+                </div>
+                <div style="flex: 1">
+                  <div
+                    style="
+                      text-align: center;
+                      margin-bottom: 8px;
+                      font-size: 10px;
+                      font-weight: 700;
+                      color: var(--ac-gold);
+                      letter-spacing: 2px;
+                      text-transform: uppercase;
+                    "
+                  >
+                    🤖 After · AI Agent
+                  </div>
+                  <div
+                    class="video-container"
+                    style="border-color: rgba(201, 168, 76, 0.25)"
+                  >
+                    <iframe
+                      src="https://drive.google.com/file/d/1dJXL40vM6Bq19rZELf9tcFwipJGuTrrY/preview"
+                      title="After - AI Agent"
+                      frameborder="0"
+                      allow="autoplay"
+                      allowfullscreen
+                      style="
+                        width: 100%;
+                        height: 100%;
+                        border: none;
+                        border-radius: 10px;
+                      "
+                    ></iframe>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="slab-bottom">
+            <div class="slab-bottom-left">ARENA-CLUB-2025</div>
+            <div class="slab-bottom-right">BEFORE & AFTER</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4: DEMO -->
+      <div class="slide" data-index="3">
+        <div class="slab" style="width: 80vw; height: 88vh; max-width: 1100px">
+          <div class="slab-label">
+            <div class="slab-label-left">
+              <div class="slab-label-title">Live Demo</div>
+              <div class="slab-label-sub">Prototype · End Result</div>
+            </div>
+            <div class="slab-label-logo">AC</div>
+            <div class="slab-label-right">
+              <div class="slab-label-grade">SLIDE</div>
+              <div class="slab-label-num">04</div>
+            </div>
+          </div>
+          <div class="slab-card-area">
+            <div
+              class="card-content"
+              style="
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+              "
+            >
+              <div class="video-container">
+                <iframe
+                  src="https://drive.google.com/file/d/1yO_ZS3pXtba5nTKT9j7DgxuTznNOjIaO/preview"
+                  title="Demo Video"
+                  frameborder="0"
+                  allow="autoplay"
+                  allowfullscreen
+                  style="
+                    width: 100%;
+                    height: 100%;
+                    border: none;
+                    border-radius: 10px;
+                  "
+                ></iframe>
+              </div>
+            </div>
+          </div>
+          <div class="slab-bottom">
+            <div class="slab-bottom-left">ARENA-CLUB-2025</div>
+            <div class="slab-bottom-right">LIVE DEMO</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5: FUTURE PHASES -->
+      <div class="slide" data-index="4">
+        <div class="slab" style="width: 80vw; height: 88vh; max-width: 1100px">
+          <div class="slab-label">
+            <div class="slab-label-left">
+              <div class="slab-label-title">Future Phases</div>
+              <div class="slab-label-sub">Roadmap & Next Steps</div>
+            </div>
+            <div class="slab-label-logo">AC</div>
+            <div class="slab-label-right">
+              <div class="slab-label-grade">SLIDE</div>
+              <div class="slab-label-num">05</div>
+            </div>
+          </div>
+          <div class="slab-card-area">
+            <div class="card-content">
+              <div class="phases-grid">
+                <div class="phase-box">
+                  <div class="phase-num">Phase 1</div>
+                  <h3>Foundation</h3>
+                  <p>
+                    Core AI agent with initial crop verification automation.
+                  </p>
+                  <a
+                    href="https://claude.ai/artifacts/a2e48391-b729-4df7-bbeb-86748f78a153"
+                    target="_blank"
+                    class="artifact-link"
+                    >↗ View Artifact</a
+                  >
+                </div>
+                <div class="phase-box">
+                  <div class="phase-num">Phase 2</div>
+                  <h3>Enhancement</h3>
+                  <p>Advanced decision logic and admin tool integration.</p>
+                  <a
+                    href="https://claude.ai/artifacts/64ecb48f-012a-4757-884b-d2d1904a2bf7"
+                    target="_blank"
+                    class="artifact-link"
+                    >↗ View Artifact</a
+                  >
+                </div>
+                <div class="phase-box">
+                  <div class="phase-num">Phase 3</div>
+                  <h3>Scale & Optimize</h3>
+                  <p>
+                    Full pipeline automation with human-in-the-loop oversight.
+                  </p>
+                  <a
+                    href="https://claude.ai/artifacts/098d0c5f-1a75-4745-8374-680101de1fc0"
+                    target="_blank"
+                    class="artifact-link"
+                    >↗ View Artifact</a
+                  >
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="slab-bottom">
+            <div class="slab-bottom-left">ARENA-CLUB-2025</div>
+            <div class="slab-bottom-right">ROADMAP</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6: THANK YOU -->
+      <div class="slide" data-index="5">
+        <div class="slab" style="width: 80vw; height: 88vh; max-width: 1100px">
+          <div class="slab-label">
+            <div class="slab-label-left">
+              <div class="slab-label-title">Thank You</div>
+              <div class="slab-label-sub">Arena Club Hackathon 2025</div>
+            </div>
+            <div class="slab-label-logo">AC</div>
+            <div class="slab-label-right">
+              <div class="slab-label-grade">GEM MINT</div>
+              <div class="slab-label-num">10</div>
+            </div>
+          </div>
+          <div class="slab-card-area">
+            <div
+              class="card-content"
+              style="
+                align-items: center;
+                justify-content: center;
+                padding: 16px;
+              "
+            >
+              <div class="video-container" style="max-height: 100%">
+                <iframe
+                  src="https://drive.google.com/file/d/1hmM1XubsQGJqd3UvPwjr4iyAn66upg8o/preview?autoplay=1"
+                  title="Thank You Video"
+                  frameborder="0"
+                  allow="autoplay"
+                  allowfullscreen
+                  style="
+                    width: 100%;
+                    height: 100%;
+                    border: none;
+                    border-radius: 10px;
+                  "
+                  id="thankyou-video"
+                ></iframe>
+              </div>
+            </div>
+          </div>
+          <div class="slab-bottom">
+            <div class="slab-bottom-left">ARENA-CLUB-2025</div>
+            <div class="slab-bottom-right">CROP APPROVER AGENT</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <button id="prevBtn" onclick="navigate(-1)" disabled>‹</button>
+      <div class="dots" id="dots"></div>
+      <button id="nextBtn" onclick="navigate(1)">›</button>
+      <div class="slide-counter" id="counter">1 / 6</div>
+    </div>
+
+    <script>
+      let c = 0;
+      const s = document.querySelectorAll(".slide"),
+        t = s.length,
+        d = document.getElementById("dots"),
+        ct = document.getElementById("counter");
+      for (let i = 0; i < t; i++) {
+        const e = document.createElement("div");
+        e.className = "dot" + (i === 0 ? " active" : "");
+        e.onclick = () => g(i);
+        d.appendChild(e);
+      }
+      function g(i) {
+        if (i < 0 || i >= t) return;
+        s[c].classList.remove("active");
+        const p = c;
+        c = i;
+        s[c].classList.add("active");
+        document
+          .querySelectorAll(".dot")
+          .forEach(
+            (e, j) => (e.className = "dot" + (j === c ? " active" : "")),
+          );
+        ct.textContent = c + 1 + " / " + t;
+        document.getElementById("prevBtn").disabled = c === 0;
+        document.getElementById("nextBtn").disabled = c === t - 1;
+        // Autoplay video on Thank You slide
+        if (c === t - 1) {
+          const v = document.getElementById("thankyou-video");
+          if (v) {
+            const src = v.src;
+            v.src = "";
+            v.src = src;
+          }
+        }
+      }
+      function navigate(dir) {
+        g(c + dir);
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " ") {
+          e.preventDefault();
+          navigate(1);
+        }
+        if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          navigate(-1);
+        }
+      });
+    </script>
+  </body>
+</html>
